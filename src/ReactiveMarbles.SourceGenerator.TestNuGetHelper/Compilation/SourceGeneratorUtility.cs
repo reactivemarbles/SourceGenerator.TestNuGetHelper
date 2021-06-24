@@ -71,18 +71,24 @@ namespace ReactiveMarbles.ObservableEvents.Tests
         /// <param name="compiler">The compiler.</param>
         /// <param name="compilationDiagnostics">The diagnostics which are produced from the compiler.</param>
         /// <param name="generatorDiagnostics">The diagnostics which are produced from the generator.</param>
+        /// <param name="generatorDriver">Output value for the driver.</param>
         /// <param name="sources">The source code files.</param>
-        public void RunGenerator<T>(EventBuilderCompiler compiler, out ImmutableArray<Diagnostic> compilationDiagnostics, out ImmutableArray<Diagnostic> generatorDiagnostics, params string[] sources)
+        /// <returns>The source generator instance.</returns>
+        public T RunGenerator<T>(EventBuilderCompiler compiler, out ImmutableArray<Diagnostic> compilationDiagnostics, out ImmutableArray<Diagnostic> generatorDiagnostics, out GeneratorDriver generatorDriver, params string[] sources)
             where T : ISourceGenerator, new()
         {
             var compilation = CreateCompilation(compiler, sources);
 
-            var newCompilation = RunGenerators(compilation, out generatorDiagnostics, new T());
+            var generator = new T();
+
+            var newCompilation = RunGenerators(compilation, out generatorDiagnostics, out generatorDriver, generator);
 
             compilationDiagnostics = newCompilation.GetDiagnostics();
 
             ShouldHaveNoCompilerDiagnosticsWarningOrAbove(_writeOutput, newCompilation, compilationDiagnostics);
             ShouldHaveNoCompilerDiagnosticsWarningOrAbove(_writeOutput, compilation, generatorDiagnostics);
+
+            return generator;
         }
 
         private static void ShouldHaveNoCompilerDiagnosticsWarningOrAbove(Action<string> output, Microsoft.CodeAnalysis.Compilation compilation, IEnumerable<Diagnostic> diagnostics)
@@ -120,16 +126,10 @@ namespace ReactiveMarbles.ObservableEvents.Tests
                 options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, deterministic: true));
         }
 
-        /// <summary>
-        /// Executes the source generators.
-        /// </summary>
-        /// <param name="compilation">The target compilation.</param>
-        /// <param name="diagnostics">The resulting diagnostics.</param>
-        /// <param name="generators">The generators to include in the compilation.</param>
-        /// <returns>The new compilation after the generators have executed.</returns>
-        private static Microsoft.CodeAnalysis.Compilation RunGenerators(Microsoft.CodeAnalysis.Compilation compilation, out ImmutableArray<Diagnostic> diagnostics, params ISourceGenerator[] generators)
+        private static Microsoft.CodeAnalysis.Compilation RunGenerators(Microsoft.CodeAnalysis.Compilation compilation, out ImmutableArray<Diagnostic> diagnostics, out GeneratorDriver generatorDriver, params ISourceGenerator[] generators)
         {
-            CreateDriver(compilation, generators).RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out diagnostics);
+            generatorDriver = CreateDriver(compilation, generators);
+            generatorDriver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out diagnostics);
             return outputCompilation;
         }
 
