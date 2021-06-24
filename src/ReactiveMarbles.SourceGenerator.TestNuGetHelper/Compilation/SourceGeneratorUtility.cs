@@ -72,6 +72,7 @@ namespace ReactiveMarbles.ObservableEvents.Tests
         /// <param name="compilationDiagnostics">The diagnostics which are produced from the compiler.</param>
         /// <param name="generatorDiagnostics">The diagnostics which are produced from the generator.</param>
         /// <param name="sources">The source code files.</param>
+        /// <returns>The source generator instance.</returns>
         public T RunGenerator<T>(EventBuilderCompiler compiler, out ImmutableArray<Diagnostic> compilationDiagnostics, out ImmutableArray<Diagnostic> generatorDiagnostics, params string[] sources)
             where T : ISourceGenerator, new()
         {
