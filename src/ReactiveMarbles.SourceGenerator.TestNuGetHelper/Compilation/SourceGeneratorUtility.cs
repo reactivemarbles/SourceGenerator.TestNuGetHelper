@@ -16,7 +16,7 @@ using ReactiveMarbles.ObservableEvents.Tests.Compilation;
 
 namespace ReactiveMarbles.ObservableEvents.Tests
 {
-    internal class SourceGeneratorUtility
+    public class SourceGeneratorUtility
     {
         private static readonly MetadataReference[] SystemAssemblyReferences;
 
