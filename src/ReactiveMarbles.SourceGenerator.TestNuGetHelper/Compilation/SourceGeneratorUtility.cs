@@ -72,10 +72,12 @@ namespace ReactiveMarbles.ObservableEvents.Tests
         /// <param name="compilationDiagnostics">The diagnostics which are produced from the compiler.</param>
         /// <param name="generatorDiagnostics">The diagnostics which are produced from the generator.</param>
         /// <param name="sources">The source code files.</param>
-        public void RunGenerator<T>(EventBuilderCompiler compiler, out ImmutableArray<Diagnostic> compilationDiagnostics, out ImmutableArray<Diagnostic> generatorDiagnostics, params string[] sources)
+        public T RunGenerator<T>(EventBuilderCompiler compiler, out ImmutableArray<Diagnostic> compilationDiagnostics, out ImmutableArray<Diagnostic> generatorDiagnostics, params string[] sources)
             where T : ISourceGenerator, new()
         {
             var compilation = CreateCompilation(compiler, sources);
+
+            var generator = new T();
 
             var newCompilation = RunGenerators(compilation, out generatorDiagnostics, new T());
 
@@ -83,6 +85,8 @@ namespace ReactiveMarbles.ObservableEvents.Tests
 
             ShouldHaveNoCompilerDiagnosticsWarningOrAbove(_writeOutput, newCompilation, compilationDiagnostics);
             ShouldHaveNoCompilerDiagnosticsWarningOrAbove(_writeOutput, compilation, generatorDiagnostics);
+
+            return generator;
         }
 
         private static void ShouldHaveNoCompilerDiagnosticsWarningOrAbove(Action<string> output, Microsoft.CodeAnalysis.Compilation compilation, IEnumerable<Diagnostic> diagnostics)
