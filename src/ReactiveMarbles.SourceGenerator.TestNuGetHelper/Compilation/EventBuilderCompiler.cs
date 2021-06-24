@@ -27,13 +27,19 @@ namespace ReactiveMarbles.ObservableEvents.Tests.Compilation
     /// <summary>
     /// Simple compilation implementation.
     /// </summary>
-    internal sealed class EventBuilderCompiler : ICompilation, IDisposable
+    public sealed class EventBuilderCompiler : ICompilation, IDisposable
     {
         private readonly KnownTypeCache _knownTypeCache;
         private readonly List<IModule> _assemblies = new();
         private readonly List<IModule> _referencedAssemblies = new();
         private readonly List<IModule> _neededAssemblies = new();
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EventBuilderCompiler"/> class.
+        /// </summary>
+        /// <param name="input">The input files from NuGet.</param>
+        /// <param name="neededInput">The needed input files that aren't part of the compiler but side files.</param>
+        /// <param name="framework">The NuGet framework which will be grabbed against.</param>
         public EventBuilderCompiler(InputAssembliesGroup input, InputAssembliesGroup neededInput, NuGetFramework framework)
         {
             _knownTypeCache = new KnownTypeCache(this);
@@ -86,11 +92,21 @@ namespace ReactiveMarbles.ObservableEvents.Tests.Compilation
         /// </summary>
         public CacheManager CacheManager { get; } = new();
 
+        /// <summary>
+        /// Gets the root namespace if avaiable.
+        /// </summary>
+        /// <param name="alias">The alias.</param>
+        /// <returns>The namespace instance.</returns>
         public INamespace? GetNamespaceForExternAlias(string? alias)
         {
             return string.IsNullOrEmpty(alias) ? RootNamespace : null;
         }
 
+        /// <summary>
+        /// Finds a type based on a type code.
+        /// </summary>
+        /// <param name="typeCode">The type code.</param>
+        /// <returns>The type.</returns>
         public IType FindType(KnownTypeCode typeCode)
         {
             return _knownTypeCache.FindType(typeCode) ?? new UnknownType("Unknown", "Unknown");

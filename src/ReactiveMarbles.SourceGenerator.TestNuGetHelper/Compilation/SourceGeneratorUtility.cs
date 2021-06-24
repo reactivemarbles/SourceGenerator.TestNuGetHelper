@@ -16,12 +16,18 @@ using ReactiveMarbles.ObservableEvents.Tests.Compilation;
 
 namespace ReactiveMarbles.ObservableEvents.Tests
 {
+    /// <summary>
+    /// The source generator utility which helps with getting NuGet packages and the source driver together.
+    /// </summary>
     public class SourceGeneratorUtility
     {
         private static readonly MetadataReference[] SystemAssemblyReferences;
 
         private Action<string> _writeOutput;
 
+        /// <summary>
+        /// Initializes static members of the <see cref="SourceGeneratorUtility"/> class.
+        /// </summary>
         static SourceGeneratorUtility()
         {
             var assemblies = new HashSet<MetadataReference>();
@@ -49,11 +55,23 @@ namespace ReactiveMarbles.ObservableEvents.Tests
             SystemAssemblyReferences = assemblies.ToArray();
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SourceGeneratorUtility"/> class.
+        /// </summary>
+        /// <param name="writeOutput">Writes output for any errors found.</param>
         public SourceGeneratorUtility(Action<string> writeOutput)
         {
             _writeOutput = writeOutput ?? throw new ArgumentNullException(nameof(writeOutput));
         }
 
+        /// <summary>
+        /// Runs the generator.
+        /// </summary>
+        /// <typeparam name="T">The type of generator.</typeparam>
+        /// <param name="compiler">The compiler.</param>
+        /// <param name="compilationDiagnostics">The diagnostics which are produced from the compiler.</param>
+        /// <param name="generatorDiagnostics">The diagnostics which are produced from the generator.</param>
+        /// <param name="sources">The source code files.</param>
         public void RunGenerator<T>(EventBuilderCompiler compiler, out ImmutableArray<Diagnostic> compilationDiagnostics, out ImmutableArray<Diagnostic> generatorDiagnostics, params string[] sources)
             where T : ISourceGenerator, new()
         {
