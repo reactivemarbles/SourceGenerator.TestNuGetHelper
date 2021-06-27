@@ -129,7 +129,7 @@ namespace ReactiveMarbles.ObservableEvents.Tests
         private static Microsoft.CodeAnalysis.Compilation RunGenerators(Microsoft.CodeAnalysis.Compilation compilation, out ImmutableArray<Diagnostic> diagnostics, out GeneratorDriver generatorDriver, params ISourceGenerator[] generators)
         {
             generatorDriver = CreateDriver(compilation, generators);
-            generatorDriver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out diagnostics);
+            generatorDriver = generatorDriver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out diagnostics);
             return outputCompilation;
         }
 
