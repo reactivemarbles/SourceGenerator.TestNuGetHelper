@@ -16,14 +16,14 @@ using NuGet.Packaging.Core;
 using NuGet.Versioning;
 using ReactiveMarbles.NuGet.Helpers;
 
-namespace ReactiveMarbles.ObservableEvents.Tests
+namespace ReactiveMarbles.SourceGenerator.TestNuGetHelper.Compilation
 {
     /// <summary>
     /// Implements the reference locations for windows builds.
     /// </summary>
     public static class ReferenceLocator
     {
-        private static readonly PackageIdentity VSWherePackageIdentity = new("VSWhere", new NuGetVersion("2.6.7"));
+        private static readonly PackageIdentity _vsWherePackageIdentity = new("VSWhere", new NuGetVersion("2.6.7"));
 
         private static readonly ConcurrentDictionary<bool, string> _windowsInstallationDirectory = new();
 
@@ -51,9 +51,8 @@ namespace ReactiveMarbles.ObservableEvents.Tests
             return Path.Combine(visualStudioInstallation, "Common7", "IDE", "ReferenceAssemblies", "Microsoft", "Framework");
         }
 
-        private static string GetWindowsInstallationDirectory(bool includePreRelease)
-        {
-            return _windowsInstallationDirectory.GetOrAdd(
+        private static string GetWindowsInstallationDirectory(bool includePreRelease) =>
+            _windowsInstallationDirectory.GetOrAdd(
                 includePreRelease,
                 incPreRelease =>
                 {
@@ -61,10 +60,10 @@ namespace ReactiveMarbles.ObservableEvents.Tests
                         async () =>
                         {
                             var results = await NuGetPackageHelper.DownloadPackageFilesAndFolder(
-                                              new[] { VSWherePackageIdentity },
-                                              new[] { new NuGetFramework("Any") },
-                                              packageFolders: new[] { PackagingConstants.Folders.Tools },
-                                              getDependencies: false).ConfigureAwait(false);
+                                new[] { _vsWherePackageIdentity },
+                                new[] { new NuGetFramework("Any") },
+                                packageFolders: new[] { PackagingConstants.Folders.Tools },
+                                getDependencies: false).ConfigureAwait(false);
 
                             var fileName = results.IncludeGroup.GetAllFileNames().FirstOrDefault(x => x.EndsWith("vswhere.exe", StringComparison.InvariantCultureIgnoreCase));
 
@@ -81,15 +80,15 @@ namespace ReactiveMarbles.ObservableEvents.Tests
                             }
 
                             using var process = new Process
-                                                {
-                                                    StartInfo =
-                                                    {
-                                                        FileName = fileName,
-                                                        Arguments = parameters.ToString(),
-                                                        UseShellExecute = false,
-                                                        RedirectStandardOutput = true
-                                                    }
-                                                };
+                            {
+                                StartInfo =
+                                {
+                                    FileName = fileName,
+                                    Arguments = parameters.ToString(),
+                                    UseShellExecute = false,
+                                    RedirectStandardOutput = true
+                                }
+                            };
 
                             process.Start();
 
@@ -100,6 +99,5 @@ namespace ReactiveMarbles.ObservableEvents.Tests
                             return output;
                         }).ConfigureAwait(false).GetAwaiter().GetResult();
                 });
-        }
     }
 }

@@ -7,18 +7,15 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection.PortableExecutable;
-
 using ICSharpCode.Decompiler.Metadata;
 using ICSharpCode.Decompiler.TypeSystem;
 using ICSharpCode.Decompiler.TypeSystem.Implementation;
 using ICSharpCode.Decompiler.Util;
-
 using NuGet.Frameworks;
-
 using ReactiveMarbles.NuGet.Helpers;
-using ReactiveMarbles.ObservableEvents.Tests.Comparers;
+using ReactiveMarbles.SourceGenerator.TestNuGetHelper.Comparers;
 
-namespace ReactiveMarbles.ObservableEvents.Tests.Compilation
+namespace ReactiveMarbles.SourceGenerator.TestNuGetHelper.Compilation
 {
     /// <summary>
     /// This class is based on ICSharpCode.Decompiler SimpleCompiler.
@@ -97,20 +94,14 @@ namespace ReactiveMarbles.ObservableEvents.Tests.Compilation
         /// </summary>
         /// <param name="alias">The alias.</param>
         /// <returns>The namespace instance.</returns>
-        public INamespace? GetNamespaceForExternAlias(string? alias)
-        {
-            return string.IsNullOrEmpty(alias) ? RootNamespace : null;
-        }
+        public INamespace? GetNamespaceForExternAlias(string? alias) => string.IsNullOrEmpty(alias) ? RootNamespace : null;
 
         /// <summary>
         /// Finds a type based on a type code.
         /// </summary>
         /// <param name="typeCode">The type code.</param>
         /// <returns>The type.</returns>
-        public IType FindType(KnownTypeCode typeCode)
-        {
-            return _knownTypeCache.FindType(typeCode) ?? new UnknownType("Unknown", "Unknown");
-        }
+        public IType FindType(KnownTypeCode typeCode) => _knownTypeCache.FindType(typeCode) ?? new UnknownType("Unknown", "Unknown");
 
         /// <inheritdoc />
         public void Dispose()
@@ -126,48 +117,22 @@ namespace ReactiveMarbles.ObservableEvents.Tests.Compilation
             }
         }
 
-        private static IEnumerable<IModule> GetFrameworkModules(NuGetFramework framework, ITypeResolveContext context)
-{
-            foreach (var file in FileSystemHelpers.GetFilesWithinSubdirectories(framework.GetNuGetFrameworkFolders()))
-            {
-                var assembly = new PEFile(file, PEStreamOptions.PrefetchMetadata);
+        private static IEnumerable<IModule> GetFrameworkModules(NuGetFramework framework, ITypeResolveContext context) =>
+            FileSystemHelpers.GetFilesWithinSubdirectories(framework.GetNuGetFrameworkFolders())
+                .Select(file => new PEFile(file, PEStreamOptions.PrefetchMetadata))
+                .Cast<IModuleReference>()
+                .Select(moduleReference => moduleReference.Resolve(context))
+                .Where(module => module is not null)
+                .Select(module => module!);
 
-                var moduleReference = (IModuleReference)assembly;
-
-                var module = moduleReference.Resolve(context);
-
-                if (module is null)
-                {
-                    continue;
-                }
-
-                yield return module;
-            }
-        }
-
-        private static IEnumerable<IModule> GetModules(FilesGroup input, ITypeResolveContext context)
-        {
-            foreach (var file in input.GetAllFileNames())
-            {
-                if (!AssemblyHelpers.AssemblyFileExtensionsSet.Contains(Path.GetExtension(file)))
-                {
-                    continue;
-                }
-
-                var peFile = new PEFile(file, PEStreamOptions.PrefetchMetadata);
-
-                var moduleReference = (IModuleReference)peFile;
-
-                var module = moduleReference.Resolve(context);
-
-                if (module is null)
-                {
-                    continue;
-                }
-
-                yield return module;
-            }
-        }
+        private static IEnumerable<IModule> GetModules(FilesGroup input, ITypeResolveContext context) =>
+            input.GetAllFileNames()
+                .Where(file => AssemblyHelpers.AssemblyFileExtensionsSet.Contains(Path.GetExtension(file)))
+                .Select(file => new PEFile(file, PEStreamOptions.PrefetchMetadata))
+                .Cast<IModuleReference>()
+                .Select(moduleReference => moduleReference.Resolve(context))
+                .Where(module => module is not null)
+                .Select(module => module!);
 
         private static void HandleModules(IEnumerable<IModule> modules, HashSet<string> seenAssemblies, IList<IModule> target)
         {
@@ -198,6 +163,7 @@ namespace ReactiveMarbles.ObservableEvents.Tests.Compilation
             HandleModules(mainSupportAssemblies, seenAssemblies, _referencedAssemblies);
             HandleModules(neededAssemblies, seenAssemblies, _neededAssemblies);
             HandleModules(frameworkAssemblies, seenAssemblies, _referencedAssemblies);
+            HandleModules(neededSupportAssemblies, seenAssemblies, _referencedAssemblies);
         }
 
         private IEnumerable<IModule> GetReferenceModules(IEnumerable<IModule> mainModules, InputAssembliesGroup input, NuGetFramework framework, ITypeResolveContext context)
@@ -211,12 +177,7 @@ namespace ReactiveMarbles.ObservableEvents.Tests.Compilation
 
                 var moduleReference = (IModuleReference?)reference.Resolve(parent, input, framework);
 
-                if (moduleReference == null)
-                {
-                    continue;
-                }
-
-                var module = moduleReference.Resolve(context);
+                var module = moduleReference?.Resolve(context);
 
                 if (module is null)
                 {
@@ -230,12 +191,14 @@ namespace ReactiveMarbles.ObservableEvents.Tests.Compilation
 
                 yield return module;
 
-                if (module.PEFile != null)
+                if (module.PEFile is null)
                 {
-                    foreach (var childAssemblyReference in module.PEFile.AssemblyReferences)
-                    {
-                        referenceModulesToProcess.Push((module, childAssemblyReference));
-                    }
+                    continue;
+                }
+
+                foreach (var childAssemblyReference in module.PEFile.AssemblyReferences)
+                {
+                    referenceModulesToProcess.Push((module, childAssemblyReference));
                 }
             }
         }

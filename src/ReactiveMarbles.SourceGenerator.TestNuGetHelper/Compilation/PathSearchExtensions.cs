@@ -13,7 +13,7 @@ using ICSharpCode.Decompiler.TypeSystem;
 using NuGet.Frameworks;
 using ReactiveMarbles.NuGet.Helpers;
 
-namespace ReactiveMarbles.ObservableEvents.Tests.Compilation
+namespace ReactiveMarbles.SourceGenerator.TestNuGetHelper.Compilation
 {
     internal static class PathSearchExtensions
     {
@@ -72,12 +72,7 @@ namespace ReactiveMarbles.ObservableEvents.Tests.Compilation
 
         private static string? FindInParentDirectory(IAssemblyReference reference, IModule parent, IEnumerable<string> extensions)
         {
-            if (parent.PEFile is null)
-            {
-                return null;
-            }
-
-            var baseDirectory = Path.GetDirectoryName(parent.PEFile.FileName);
+            var baseDirectory = Path.GetDirectoryName(parent.PEFile?.FileName);
 
             if (baseDirectory == null || string.IsNullOrWhiteSpace(baseDirectory))
             {
@@ -87,17 +82,14 @@ namespace ReactiveMarbles.ObservableEvents.Tests.Compilation
             return extensions.Select(extension => Path.Combine(baseDirectory, reference.Name + extension)).FirstOrDefault(File.Exists);
         }
 
-        private static string? SearchNugetFrameworkDirectories(IAssemblyReference reference, IReadOnlyCollection<string> extensions, NuGetFramework framework)
+        private static string? SearchNugetFrameworkDirectories(IAssemblyReference reference, IEnumerable<string> extensions, NuGetFramework framework)
         {
             var folders = framework.GetNuGetFrameworkFolders();
 
             return folders.SelectMany(_ => extensions, (folder, extension) => Path.Combine(folder, reference.Name + extension)).Where(testName => !string.IsNullOrWhiteSpace(testName)).FirstOrDefault(File.Exists);
         }
 
-        private static string? SearchDirectories(IAssemblyReference name, InputAssembliesGroup input, IEnumerable<string> extensions)
-        {
-            return extensions.Select(extension => input.SupportGroup.GetFullFilePath(name.Name + extension)).Where(testName => !string.IsNullOrWhiteSpace(testName)).FirstOrDefault(File.Exists);
-        }
+        private static string? SearchDirectories(IAssemblyReference name, InputAssembliesGroup input, IEnumerable<string> extensions) => extensions.Select(extension => input.SupportGroup.GetFullFilePath(name.Name + extension)).Where(testName => !string.IsNullOrWhiteSpace(testName)).FirstOrDefault(File.Exists);
 
         private static string? GetCorlib(IAssemblyReference reference)
         {
@@ -126,7 +118,7 @@ namespace ReactiveMarbles.ObservableEvents.Tests.Compilation
         {
             string? GetSubFolderForVersion()
             {
-                return version?.Major switch
+                return version.Major switch
                 {
                     1 => version.MajorRevision == 3300 ? "v1.0.3705" : "v1.1.4322",
                     2 => "v2.0.50727",
@@ -192,16 +184,11 @@ namespace ReactiveMarbles.ObservableEvents.Tests.Compilation
             return Directory.Exists(path) ? path : null;
         }
 
-        private static bool IsSpecialVersionOrRetargetable(IAssemblyReference reference)
-        {
-            return IsZeroOrAllOnes(reference.Version) || reference.IsRetargetable;
-        }
+        private static bool IsSpecialVersionOrRetargetable(IAssemblyReference reference) => IsZeroOrAllOnes(reference.Version) || reference.IsRetargetable;
 
-        private static bool IsZeroOrAllOnes(Version? version)
-        {
-            return version == null
-                   || (version.Major == 0 && version.Minor == 0 && version.Build == 0 && version.Revision == 0)
-                   || (version.Major == 65535 && version.Minor == 65535 && version.Build == 65535 && version.Revision == 65535);
-        }
+        private static bool IsZeroOrAllOnes(Version? version) =>
+            version == null
+            || (version.Major == 0 && version.Minor == 0 && version.Build == 0 && version.Revision == 0)
+            || (version.Major == 65535 && version.Minor == 65535 && version.Build == 65535 && version.Revision == 65535);
     }
 }

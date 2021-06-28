@@ -4,11 +4,9 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-
 using ICSharpCode.Decompiler.TypeSystem;
 
-namespace ReactiveMarbles.ObservableEvents.Tests.Comparers
+namespace ReactiveMarbles.SourceGenerator.TestNuGetHelper.Comparers
 {
     internal class ModuleNameComparer : IEqualityComparer<IModule>
     {

@@ -6,7 +6,7 @@ using ICSharpCode.Decompiler.TypeSystem;
 using ICSharpCode.Decompiler.TypeSystem.Implementation;
 using ICSharpCode.Decompiler.Util;
 
-namespace ReactiveMarbles.ObservableEvents.Tests.Compilation
+namespace ReactiveMarbles.SourceGenerator.TestNuGetHelper.Compilation
 {
     /// <summary>
     /// Cache for KnownTypeReferences.
@@ -18,15 +18,12 @@ namespace ReactiveMarbles.ObservableEvents.Tests.Compilation
         private readonly ICompilation _compilation;
         private readonly IType[] _knownTypes = new IType[(int)KnownTypeCode.MemoryOfT + 1];
 
-        public KnownTypeCache(ICompilation compilation)
-        {
-            _compilation = compilation;
-        }
+        public KnownTypeCache(ICompilation compilation) => _compilation = compilation;
 
         public IType? FindType(KnownTypeCode typeCode)
         {
             var type = LazyInit.VolatileRead(ref _knownTypes[(int)typeCode]);
-            IType? target = _knownTypes[(int)typeCode];
+            var target = _knownTypes[(int)typeCode];
 
             var value = type ?? LazyInit.GetOrSet(ref target, SearchType(typeCode));
 
