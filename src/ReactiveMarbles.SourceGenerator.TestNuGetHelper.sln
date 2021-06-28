@@ -5,6 +5,17 @@ VisualStudioVersion = 16.0.30114.105
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReactiveMarbles.SourceGenerator.TestNuGetHelper", "ReactiveMarbles.SourceGenerator.TestNuGetHelper\ReactiveMarbles.SourceGenerator.TestNuGetHelper.csproj", "{103481FA-7169-42A2-8680-703A0D403A22}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{83301E99-BB43-4C1F-BC2B-A185A3A089B1}"
+ProjectSection(SolutionItems) = preProject
+	Directory.Build.props = Directory.Build.props
+	Directory.build.targets = Directory.build.targets
+	stylecop.json = stylecop.json
+	..\.editorconfig = ..\.editorconfig
+	..\LICENSE = ..\LICENSE
+	..\README.md = ..\README.md
+	..\version.json = ..\version.json
+EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

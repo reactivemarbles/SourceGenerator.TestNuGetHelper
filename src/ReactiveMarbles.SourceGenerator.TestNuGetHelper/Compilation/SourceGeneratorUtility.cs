@@ -7,23 +7,17 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
-using System.Reflection;
-
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
-using ReactiveMarbles.ObservableEvents.Tests.Compilation;
-
-namespace ReactiveMarbles.ObservableEvents.Tests
+namespace ReactiveMarbles.SourceGenerator.TestNuGetHelper.Compilation
 {
     /// <summary>
     /// The source generator utility which helps with getting NuGet packages and the source driver together.
     /// </summary>
     public class SourceGeneratorUtility
     {
-        private static readonly MetadataReference[] SystemAssemblyReferences;
-
-        private Action<string> _writeOutput;
+        private readonly Action<string> _writeOutput;
 
         /// <summary>
         /// Initializes static members of the <see cref="SourceGeneratorUtility"/> class.
@@ -51,18 +45,13 @@ namespace ReactiveMarbles.ObservableEvents.Tests
 
                 assemblies.Add(MetadataReference.CreateFromFile(assembly.Location));
             }
-
-            SystemAssemblyReferences = assemblies.ToArray();
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SourceGeneratorUtility"/> class.
         /// </summary>
         /// <param name="writeOutput">Writes output for any errors found.</param>
-        public SourceGeneratorUtility(Action<string> writeOutput)
-        {
-            _writeOutput = writeOutput ?? throw new ArgumentNullException(nameof(writeOutput));
-        }
+        public SourceGeneratorUtility(Action<string> writeOutput) => _writeOutput = writeOutput ?? throw new ArgumentNullException(nameof(writeOutput));
 
         /// <summary>
         /// Runs the generator.
@@ -95,11 +84,11 @@ namespace ReactiveMarbles.ObservableEvents.Tests
         {
             var compilationErrors = diagnostics.Where(x => x.Severity >= DiagnosticSeverity.Warning).Select(x => $"// {x.Location.SourceTree?.FilePath} ({x.Location.GetLineSpan().StartLinePosition}): {x.GetMessage()}{Environment.NewLine}").ToList();
 
-            var outputSources = string.Join(Environment.NewLine, compilation.SyntaxTrees.Select(x => $"// {x.FilePath}:{Environment.NewLine}{x}").Where(x => !x.Contains("The impementation should have been generated.")));
+            var outputSources = string.Join(Environment.NewLine, compilation.SyntaxTrees.Select(x => $"// {x.FilePath}:{Environment.NewLine}{x}").Where(x => !x.Contains("The implementation should have been generated.")));
 
             if (compilationErrors.Count > 0)
             {
-                output?.Invoke(outputSources);
+                output.Invoke(outputSources);
                 throw new InvalidOperationException(string.Join(Environment.NewLine, compilationErrors));
             }
         }
@@ -120,10 +109,10 @@ namespace ReactiveMarbles.ObservableEvents.Tests
             assemblies.UnionWith(compiler.NeededModules.Where(x => x.PEFile is not null).Select(x => MetadataReference.CreateFromFile(x.PEFile!.FileName)));
 
             return CSharpCompilation.Create(
-                assemblyName: "compilation" + Guid.NewGuid(),
-                syntaxTrees: sources.Select(x => CSharpSyntaxTree.ParseText(x, new CSharpParseOptions(LanguageVersion.Latest))),
-                references: assemblies,
-                options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, deterministic: true));
+                "compilation" + Guid.NewGuid(),
+                sources.Select(x => CSharpSyntaxTree.ParseText(x, new CSharpParseOptions(LanguageVersion.Latest))),
+                assemblies,
+                new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, deterministic: true));
         }
 
         private static Microsoft.CodeAnalysis.Compilation RunGenerators(Microsoft.CodeAnalysis.Compilation compilation, out ImmutableArray<Diagnostic> diagnostics, out GeneratorDriver generatorDriver, params ISourceGenerator[] generators)
@@ -135,35 +124,8 @@ namespace ReactiveMarbles.ObservableEvents.Tests
 
         private static GeneratorDriver CreateDriver(Microsoft.CodeAnalysis.Compilation compilation, params ISourceGenerator[] generators) =>
             CSharpGeneratorDriver.Create(
-                generators: ImmutableArray.Create(generators),
-                additionalTexts: ImmutableArray<AdditionalText>.Empty,
-                parseOptions: (CSharpParseOptions)compilation.SyntaxTrees.First().Options,
-                optionsProvider: null);
-
-        private sealed class AssemblyEqualityComparer : IEqualityComparer<Assembly>
-        {
-            private AssemblyEqualityComparer()
-            {
-            }
-
-            public static AssemblyEqualityComparer Default { get; } = new AssemblyEqualityComparer();
-
-            public bool Equals(Assembly? x, Assembly? y)
-            {
-                if (x is null && y is null)
-                {
-                    return true;
-                }
-
-                if (x is null || y is null)
-                {
-                    return false;
-                }
-
-                return string.Equals(x.FullName, y.FullName, StringComparison.InvariantCultureIgnoreCase);
-            }
-
-            public int GetHashCode(Assembly obj) => obj.FullName?.GetHashCode() ?? 0;
-        }
+                ImmutableArray.Create(generators),
+                ImmutableArray<AdditionalText>.Empty,
+                (CSharpParseOptions)compilation.SyntaxTrees.First().Options);
     }
 }
