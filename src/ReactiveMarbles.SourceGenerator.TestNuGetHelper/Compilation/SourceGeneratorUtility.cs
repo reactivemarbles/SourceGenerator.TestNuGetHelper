@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
@@ -64,18 +65,33 @@ namespace ReactiveMarbles.SourceGenerator.TestNuGetHelper.Compilation
         /// <param name="sources">The source code files.</param>
         /// <returns>The source generator instance.</returns>
         public T RunGenerator<T>(EventBuilderCompiler compiler, out ImmutableArray<Diagnostic> compilationDiagnostics, out ImmutableArray<Diagnostic> generatorDiagnostics, out GeneratorDriver generatorDriver, params string[] sources)
+            where T : ISourceGenerator, new() => RunGenerator<T>(compiler, out compilationDiagnostics, out generatorDiagnostics, out generatorDriver, out _, out _, sources);
+
+        /// <summary>
+        /// Runs the generator.
+        /// </summary>
+        /// <typeparam name="T">The type of generator.</typeparam>
+        /// <param name="compiler">The compiler.</param>
+        /// <param name="compilationDiagnostics">The diagnostics which are produced from the compiler.</param>
+        /// <param name="generatorDiagnostics">The diagnostics which are produced from the generator.</param>
+        /// <param name="generatorDriver">Output value for the driver.</param>
+        /// <param name="beforeCompilation">The compilation before the generator has run.</param>
+        /// <param name="afterGeneratorCompilation">The compilation after the generator has run.</param>
+        /// <param name="sources">The source code files.</param>
+        /// <returns>The source generator instance.</returns>
+        public T RunGenerator<T>(EventBuilderCompiler compiler, out ImmutableArray<Diagnostic> compilationDiagnostics, out ImmutableArray<Diagnostic> generatorDiagnostics, out GeneratorDriver generatorDriver, out Microsoft.CodeAnalysis.Compilation beforeCompilation, out Microsoft.CodeAnalysis.Compilation afterGeneratorCompilation, params string[] sources)
             where T : ISourceGenerator, new()
         {
-            var compilation = CreateCompilation(compiler, sources);
+            beforeCompilation = CreateCompilation(compiler, sources);
 
             var generator = new T();
 
-            var newCompilation = RunGenerators(compilation, out generatorDiagnostics, out generatorDriver, generator);
+            afterGeneratorCompilation = RunGenerators(beforeCompilation, out generatorDiagnostics, out generatorDriver, generator);
 
-            compilationDiagnostics = newCompilation.GetDiagnostics();
+            compilationDiagnostics = afterGeneratorCompilation.GetDiagnostics();
 
-            ShouldHaveNoCompilerDiagnosticsWarningOrAbove(_writeOutput, newCompilation, compilationDiagnostics);
-            ShouldHaveNoCompilerDiagnosticsWarningOrAbove(_writeOutput, compilation, generatorDiagnostics);
+            ShouldHaveNoCompilerDiagnosticsWarningOrAbove(_writeOutput, afterGeneratorCompilation, compilationDiagnostics);
+            ShouldHaveNoCompilerDiagnosticsWarningOrAbove(_writeOutput, beforeCompilation, generatorDiagnostics);
 
             return generator;
         }

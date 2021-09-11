@@ -10,6 +10,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/reactivemarbles/SourceGenerator.TestNuGetHelper</PackageProjectUrl>
     <PackageDescription>Helpers for dealing with NuGet packages.</PackageDescription>
+    <PackageIcon>logo.png</PackageIcon>
     <Owners>glennawatson</Owners>
     <PackageReleaseNotes>https://github.com/reactivemarbles/SourceGenerator.TestNuGetHelper/releases</PackageReleaseNotes>
     <RepositoryUrl>https://github.com/reactivemarbles/SourceGenerator.TestNuGetHelper</RepositoryUrl>
@@ -32,6 +33,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)..\images\logo.png" Pack="true" PackagePath="\"/>
     <None Include="$(MSBuildThisFileDirectory)..\LICENSE" Pack="true" PackagePath="LICENSE" />
   </ItemGroup>
 
