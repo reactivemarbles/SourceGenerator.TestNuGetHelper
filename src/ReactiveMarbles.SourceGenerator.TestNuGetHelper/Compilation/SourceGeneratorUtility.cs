@@ -75,11 +75,40 @@ namespace ReactiveMarbles.SourceGenerator.TestNuGetHelper.Compilation
         /// <param name="compilationDiagnostics">The diagnostics which are produced from the compiler.</param>
         /// <param name="generatorDiagnostics">The diagnostics which are produced from the generator.</param>
         /// <param name="generatorDriver">Output value for the driver.</param>
+        /// <param name="sources">The source code files.</param>
+        /// <returns>The source generator instance.</returns>
+        public T RunGenerator<T>(EventBuilderCompiler compiler, out ImmutableArray<Diagnostic> compilationDiagnostics, out ImmutableArray<Diagnostic> generatorDiagnostics, out GeneratorDriver generatorDriver, params (string FileName, string Source)[] sources)
+            where T : ISourceGenerator, new() => RunGenerator<T>(compiler, out compilationDiagnostics, out generatorDiagnostics, out generatorDriver, out _, out _, sources);
+
+        /// <summary>
+        /// Runs the generator.
+        /// </summary>
+        /// <typeparam name="T">The type of generator.</typeparam>
+        /// <param name="compiler">The compiler.</param>
+        /// <param name="compilationDiagnostics">The diagnostics which are produced from the compiler.</param>
+        /// <param name="generatorDiagnostics">The diagnostics which are produced from the generator.</param>
+        /// <param name="generatorDriver">Output value for the driver.</param>
         /// <param name="beforeCompilation">The compilation before the generator has run.</param>
         /// <param name="afterGeneratorCompilation">The compilation after the generator has run.</param>
         /// <param name="sources">The source code files.</param>
         /// <returns>The source generator instance.</returns>
         public T RunGenerator<T>(EventBuilderCompiler compiler, out ImmutableArray<Diagnostic> compilationDiagnostics, out ImmutableArray<Diagnostic> generatorDiagnostics, out GeneratorDriver generatorDriver, out Microsoft.CodeAnalysis.Compilation beforeCompilation, out Microsoft.CodeAnalysis.Compilation afterGeneratorCompilation, params string[] sources)
+            where T : ISourceGenerator, new() =>
+            RunGenerator<T>(compiler, out compilationDiagnostics, out generatorDiagnostics, out generatorDriver, out beforeCompilation, out afterGeneratorCompilation, sources.Select(x => (FileName: "Unknown File", Source: x)).ToArray());
+
+        /// <summary>
+        /// Runs the generator.
+        /// </summary>
+        /// <typeparam name="T">The type of generator.</typeparam>
+        /// <param name="compiler">The compiler.</param>
+        /// <param name="compilationDiagnostics">The diagnostics which are produced from the compiler.</param>
+        /// <param name="generatorDiagnostics">The diagnostics which are produced from the generator.</param>
+        /// <param name="generatorDriver">Output value for the driver.</param>
+        /// <param name="beforeCompilation">The compilation before the generator has run.</param>
+        /// <param name="afterGeneratorCompilation">The compilation after the generator has run.</param>
+        /// <param name="sources">The source code files.</param>
+        /// <returns>The source generator instance.</returns>
+        public T RunGenerator<T>(EventBuilderCompiler compiler, out ImmutableArray<Diagnostic> compilationDiagnostics, out ImmutableArray<Diagnostic> generatorDiagnostics, out GeneratorDriver generatorDriver, out Microsoft.CodeAnalysis.Compilation beforeCompilation, out Microsoft.CodeAnalysis.Compilation afterGeneratorCompilation, params (string FileName, string Source)[] sources)
             where T : ISourceGenerator, new()
         {
             beforeCompilation = CreateCompilation(compiler, sources);
@@ -109,7 +138,7 @@ namespace ReactiveMarbles.SourceGenerator.TestNuGetHelper.Compilation
             }
         }
 
-        private static Microsoft.CodeAnalysis.Compilation CreateCompilation(EventBuilderCompiler compiler, params string[] sources)
+        private static Microsoft.CodeAnalysis.Compilation CreateCompilation(EventBuilderCompiler compiler, params (string FileName, string Source)[] sources)
         {
             var assemblyPath = Path.GetDirectoryName(typeof(object).Assembly.Location);
 
@@ -126,7 +155,7 @@ namespace ReactiveMarbles.SourceGenerator.TestNuGetHelper.Compilation
 
             return CSharpCompilation.Create(
                 "compilation" + Guid.NewGuid(),
-                sources.Select(x => CSharpSyntaxTree.ParseText(x, new CSharpParseOptions(LanguageVersion.Latest))),
+                sources.Select(x => CSharpSyntaxTree.ParseText(x.Source, new CSharpParseOptions(LanguageVersion.Latest), x.FileName)),
                 assemblies,
                 new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, deterministic: true));
         }
