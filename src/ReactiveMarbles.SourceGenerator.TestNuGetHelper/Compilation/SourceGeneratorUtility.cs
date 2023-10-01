@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2019-2021 ReactiveUI Association Incorporated. All rights reserved.
+﻿// Copyright (c) 2019-2023 ReactiveUI Association Incorporated. All rights reserved.
 // ReactiveUI Association Incorporated licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for full license information.
 
@@ -125,6 +125,77 @@ namespace ReactiveMarbles.SourceGenerator.TestNuGetHelper.Compilation
             return generator;
         }
 
+        /// <summary>
+        /// Runs the generator.
+        /// </summary>
+        /// <typeparam name="T">The type of generator.</typeparam>
+        /// <param name="compiler">The compiler.</param>
+        /// <param name="compilationDiagnostics">The diagnostics which are produced from the compiler.</param>
+        /// <param name="generatorDiagnostics">The diagnostics which are produced from the generator.</param>
+        /// <param name="generatorDriver">Output value for the driver.</param>
+        /// <param name="sources">The source code files.</param>
+        /// <returns>The source generator instance.</returns>
+        public T RunIncrementalGenerator<T>(EventBuilderCompiler compiler, out ImmutableArray<Diagnostic> compilationDiagnostics, out ImmutableArray<Diagnostic> generatorDiagnostics, out GeneratorDriver generatorDriver, params string[] sources)
+            where T : IIncrementalGenerator, new() => RunIncrementalGenerator<T>(compiler, out compilationDiagnostics, out generatorDiagnostics, out generatorDriver, out _, out _, sources);
+
+        /// <summary>
+        /// Runs the generator.
+        /// </summary>
+        /// <typeparam name="T">The type of generator.</typeparam>
+        /// <param name="compiler">The compiler.</param>
+        /// <param name="compilationDiagnostics">The diagnostics which are produced from the compiler.</param>
+        /// <param name="generatorDiagnostics">The diagnostics which are produced from the generator.</param>
+        /// <param name="generatorDriver">Output value for the driver.</param>
+        /// <param name="sources">The source code files.</param>
+        /// <returns>The source generator instance.</returns>
+        public T RunIncrementalGenerator<T>(EventBuilderCompiler compiler, out ImmutableArray<Diagnostic> compilationDiagnostics, out ImmutableArray<Diagnostic> generatorDiagnostics, out GeneratorDriver generatorDriver, params (string FileName, string Source)[] sources)
+            where T : IIncrementalGenerator, new() => RunIncrementalGenerator<T>(compiler, out compilationDiagnostics, out generatorDiagnostics, out generatorDriver, out _, out _, sources);
+
+        /// <summary>
+        /// Runs the generator.
+        /// </summary>
+        /// <typeparam name="T">The type of generator.</typeparam>
+        /// <param name="compiler">The compiler.</param>
+        /// <param name="compilationDiagnostics">The diagnostics which are produced from the compiler.</param>
+        /// <param name="generatorDiagnostics">The diagnostics which are produced from the generator.</param>
+        /// <param name="generatorDriver">Output value for the driver.</param>
+        /// <param name="beforeCompilation">The compilation before the generator has run.</param>
+        /// <param name="afterGeneratorCompilation">The compilation after the generator has run.</param>
+        /// <param name="sources">The source code files.</param>
+        /// <returns>The source generator instance.</returns>
+        public T RunIncrementalGenerator<T>(EventBuilderCompiler compiler, out ImmutableArray<Diagnostic> compilationDiagnostics, out ImmutableArray<Diagnostic> generatorDiagnostics, out GeneratorDriver generatorDriver, out Microsoft.CodeAnalysis.Compilation beforeCompilation, out Microsoft.CodeAnalysis.Compilation afterGeneratorCompilation, params string[] sources)
+            where T : IIncrementalGenerator, new() =>
+            RunIncrementalGenerator<T>(compiler, out compilationDiagnostics, out generatorDiagnostics, out generatorDriver, out beforeCompilation, out afterGeneratorCompilation, sources.Select(x => (FileName: "Unknown File", Source: x)).ToArray());
+
+        /// <summary>
+        /// Runs the generator.
+        /// </summary>
+        /// <typeparam name="T">The type of generator.</typeparam>
+        /// <param name="compiler">The compiler.</param>
+        /// <param name="compilationDiagnostics">The diagnostics which are produced from the compiler.</param>
+        /// <param name="generatorDiagnostics">The diagnostics which are produced from the generator.</param>
+        /// <param name="generatorDriver">Output value for the driver.</param>
+        /// <param name="beforeCompilation">The compilation before the generator has run.</param>
+        /// <param name="afterGeneratorCompilation">The compilation after the generator has run.</param>
+        /// <param name="sources">The source code files.</param>
+        /// <returns>The source generator instance.</returns>
+        public T RunIncrementalGenerator<T>(EventBuilderCompiler compiler, out ImmutableArray<Diagnostic> compilationDiagnostics, out ImmutableArray<Diagnostic> generatorDiagnostics, out GeneratorDriver generatorDriver, out Microsoft.CodeAnalysis.Compilation beforeCompilation, out Microsoft.CodeAnalysis.Compilation afterGeneratorCompilation, params (string FileName, string Source)[] sources)
+            where T : IIncrementalGenerator, new()
+        {
+            beforeCompilation = CreateCompilation(compiler, sources);
+
+            var generator = new T();
+
+            afterGeneratorCompilation = RunIncrementalGenerator(beforeCompilation, out generatorDiagnostics, out generatorDriver, generator);
+
+            compilationDiagnostics = afterGeneratorCompilation.GetDiagnostics();
+
+            ShouldHaveNoCompilerDiagnosticsWarningOrAbove(_writeOutput, afterGeneratorCompilation, compilationDiagnostics);
+            ShouldHaveNoCompilerDiagnosticsWarningOrAbove(_writeOutput, beforeCompilation, generatorDiagnostics);
+
+            return generator;
+        }
+
         private static void ShouldHaveNoCompilerDiagnosticsWarningOrAbove(Action<string> output, Microsoft.CodeAnalysis.Compilation compilation, IEnumerable<Diagnostic> diagnostics)
         {
             var compilationErrors = diagnostics.Where(x => x.Severity >= DiagnosticSeverity.Warning).Select(x => $"// {x.Location.SourceTree?.FilePath} ({x.Location.GetLineSpan().StartLinePosition}): {x.GetMessage()}{Environment.NewLine}").ToList();
@@ -167,10 +238,23 @@ namespace ReactiveMarbles.SourceGenerator.TestNuGetHelper.Compilation
             return outputCompilation;
         }
 
+        private static Microsoft.CodeAnalysis.Compilation RunIncrementalGenerator(Microsoft.CodeAnalysis.Compilation compilation, out ImmutableArray<Diagnostic> diagnostics, out GeneratorDriver generatorDriver, params IIncrementalGenerator[] generators)
+        {
+            generatorDriver = CreateDriver(compilation, generators);
+            generatorDriver = generatorDriver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out diagnostics);
+            return outputCompilation;
+        }
+
         private static GeneratorDriver CreateDriver(Microsoft.CodeAnalysis.Compilation compilation, params ISourceGenerator[] generators) =>
             CSharpGeneratorDriver.Create(
-                ImmutableArray.Create(generators),
-                ImmutableArray<AdditionalText>.Empty,
+                generators,
+                Array.Empty<AdditionalText>(),
+                (CSharpParseOptions)compilation.SyntaxTrees.First().Options);
+
+        private static GeneratorDriver CreateDriver(Microsoft.CodeAnalysis.Compilation compilation, params IIncrementalGenerator[] generators) =>
+            CSharpGeneratorDriver.Create(
+                generators.Select(x => x.AsSourceGenerator()).ToArray(),
+                Array.Empty<AdditionalText>(),
                 (CSharpParseOptions)compilation.SyntaxTrees.First().Options);
     }
 }
