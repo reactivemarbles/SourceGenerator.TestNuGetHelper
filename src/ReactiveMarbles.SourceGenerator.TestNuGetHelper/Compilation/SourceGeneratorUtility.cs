@@ -128,6 +128,73 @@ namespace ReactiveMarbles.SourceGenerator.TestNuGetHelper.Compilation
         /// <summary>
         /// Runs the generator.
         /// </summary>
+        /// <param name="compiler">The compiler.</param>
+        /// <param name="generator">The source generator instance.</param>
+        /// <param name="compilationDiagnostics">The diagnostics which are produced from the compiler.</param>
+        /// <param name="generatorDiagnostics">The diagnostics which are produced from the generator.</param>
+        /// <param name="generatorDriver">Output value for the driver.</param>
+        /// <param name="sources">The source code files.</param>
+        /// <returns>The returned source generator instance.</returns>
+        public ISourceGenerator RunGeneratorInstance(EventBuilderCompiler compiler, ISourceGenerator generator, out ImmutableArray<Diagnostic> compilationDiagnostics, out ImmutableArray<Diagnostic> generatorDiagnostics, out GeneratorDriver generatorDriver, params string[] sources) =>
+            RunGeneratorInstance(compiler, generator, out compilationDiagnostics, out generatorDiagnostics, out generatorDriver, out _, out _, sources);
+
+        /// <summary>
+        /// Runs the generator.
+        /// </summary>
+        /// <param name="compiler">The compiler.</param>
+        /// <param name="generator">The source generator instance.</param>
+        /// <param name="compilationDiagnostics">The diagnostics which are produced from the compiler.</param>
+        /// <param name="generatorDiagnostics">The diagnostics which are produced from the generator.</param>
+        /// <param name="generatorDriver">Output value for the driver.</param>
+        /// <param name="sources">The source code files.</param>
+        /// <returns>The returned source generator instance.</returns>
+        public ISourceGenerator RunGeneratorInstance(EventBuilderCompiler compiler, ISourceGenerator generator, out ImmutableArray<Diagnostic> compilationDiagnostics, out ImmutableArray<Diagnostic> generatorDiagnostics, out GeneratorDriver generatorDriver, params (string FileName, string Source)[] sources) =>
+            RunGeneratorInstance(compiler, generator, out compilationDiagnostics, out generatorDiagnostics, out generatorDriver, out _, out _, sources);
+
+        /// <summary>
+        /// Runs the generator.
+        /// </summary>
+        /// <param name="compiler">The compiler.</param>
+        /// <param name="generator">The source generator instance.</param>
+        /// <param name="compilationDiagnostics">The diagnostics which are produced from the compiler.</param>
+        /// <param name="generatorDiagnostics">The diagnostics which are produced from the generator.</param>
+        /// <param name="generatorDriver">Output value for the driver.</param>
+        /// <param name="beforeCompilation">The compilation before the generator has run.</param>
+        /// <param name="afterGeneratorCompilation">The compilation after the generator has run.</param>
+        /// <param name="sources">The source code files.</param>
+        /// <returns>The returned source generator instance.</returns>
+        public ISourceGenerator RunGeneratorInstance(EventBuilderCompiler compiler, ISourceGenerator generator, out ImmutableArray<Diagnostic> compilationDiagnostics, out ImmutableArray<Diagnostic> generatorDiagnostics, out GeneratorDriver generatorDriver, out Microsoft.CodeAnalysis.Compilation beforeCompilation, out Microsoft.CodeAnalysis.Compilation afterGeneratorCompilation, params string[] sources) =>
+            RunGeneratorInstance(compiler, generator, out compilationDiagnostics, out generatorDiagnostics, out generatorDriver, out beforeCompilation, out afterGeneratorCompilation, sources.Select(x => (FileName: "Unknown File", Source: x)).ToArray());
+
+        /// <summary>
+        /// Runs the generator.
+        /// </summary>
+        /// <param name="compiler">The compiler.</param>
+        /// <param name="generator">The source generator instance.</param>
+        /// <param name="compilationDiagnostics">The diagnostics which are produced from the compiler.</param>
+        /// <param name="generatorDiagnostics">The diagnostics which are produced from the generator.</param>
+        /// <param name="generatorDriver">Output value for the driver.</param>
+        /// <param name="beforeCompilation">The compilation before the generator has run.</param>
+        /// <param name="afterGeneratorCompilation">The compilation after the generator has run.</param>
+        /// <param name="sources">The source code files.</param>
+        /// <returns>The returned source generator instance.</returns>
+        public ISourceGenerator RunGeneratorInstance(EventBuilderCompiler compiler, ISourceGenerator generator, out ImmutableArray<Diagnostic> compilationDiagnostics, out ImmutableArray<Diagnostic> generatorDiagnostics, out GeneratorDriver generatorDriver, out Microsoft.CodeAnalysis.Compilation beforeCompilation, out Microsoft.CodeAnalysis.Compilation afterGeneratorCompilation, params (string FileName, string Source)[] sources)
+        {
+            beforeCompilation = CreateCompilation(compiler, sources);
+
+            afterGeneratorCompilation = RunGenerators(beforeCompilation, out generatorDiagnostics, out generatorDriver, generator);
+
+            compilationDiagnostics = afterGeneratorCompilation.GetDiagnostics();
+
+            ShouldHaveNoCompilerDiagnosticsWarningOrAbove(_writeOutput, afterGeneratorCompilation, compilationDiagnostics);
+            ShouldHaveNoCompilerDiagnosticsWarningOrAbove(_writeOutput, beforeCompilation, generatorDiagnostics);
+
+            return generator;
+        }
+
+        /// <summary>
+        /// Runs the generator.
+        /// </summary>
         /// <typeparam name="T">The type of generator.</typeparam>
         /// <param name="compiler">The compiler.</param>
         /// <param name="compilationDiagnostics">The diagnostics which are produced from the compiler.</param>
